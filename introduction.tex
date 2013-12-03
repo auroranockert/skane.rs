@@ -1,0 +1,610 @@
+\documentclass{beamer}
+
+\usepackage[utf8]{inputenc}
+\usepackage{ae,aecompl}
+\usepackage{lmodern}
+
+\mode<presentation> {
+  \usetheme{Pittsburgh}
+  \setbeamertemplate{navigation symbols}{}
+}
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{ellipsis}
+
+%----------------------------------------------------------------------------------------
+%	TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\title[A Friendly Introduction to Rust]{A Friendly Introduction to Rust}
+
+\author{Jens Nockert}
+\institute[jens.nockert@topvisible.se]{\textit{jens.nockert@topvisible.se}}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Overview}
+\tableofcontents
+\end{frame}
+
+
+
+%------------------------------------------------
+\section{Rust Skåne}
+%------------------------------------------------
+
+\begin{frame}
+  \frametitle{Rust Skåne}
+
+  \begin{itemize}[<+->]
+    \item Somewhere to learn Rust
+    \item Somewhere to learn how to present
+    \item Somewhere to learn things they don't teach in school
+  \end{itemize}
+  
+  \pause
+  
+  And all in a friendly environment.
+\end{frame}
+
+
+
+
+\begin{frame}
+  \frametitle{No one knows Rust}
+
+  No one here works with Rust, and we're not likely to start using Rust at work soon. \pause
+
+  \begin{itemize}[<+->]
+    \item Presentations about projects in Rust.
+    \item Presentations about something you know.
+    \item Presentations about how to write better code.
+    \item Presentations about techniques and paradigms.
+    \item Presentations about how Rust differs from your favorite language.
+  \end{itemize}
+\end{frame}
+
+
+
+%------------------------------------------------
+\section{Language Design}
+%------------------------------------------------
+
+\begin{frame}
+  \frametitle{Why replace C?}
+
+  \begin{itemize}
+    \item Buffer overflows.
+    \item Dangling pointers.
+    \item Out-of-bounds array accesses.
+    \item Format string errors.
+    \item Stack overflows.
+    \item Memory leaks.
+    \item Double free errors.
+  \end{itemize}
+\end{frame}
+
+
+
+\begin{frame}
+  \frametitle{Rust is like C, but \ldots}
+
+  \begin{itemize}[<+->]
+    \item \ldots\ with memory safety.
+    \item \ldots\ with mutability control.
+    \item \ldots\ with a powerful type system.
+    \item \ldots\ with generics.
+    \item \ldots\ with lightweight tasks and fast asynchronous, copyless message passing.
+    \item \ldots\ with macros. \pause
+    \item \ldots\ without runtime checks.
+  \end{itemize}
+\end{frame}
+
+
+
+\begin{frame}
+  \frametitle{So what is like C?}
+
+  \begin{itemize}
+    \item The close relationship between written code and generated assembly.
+    \item The ability to run with close to no runtime.
+    \item No costly abstractions.
+    \item You'll still have to think about allocations and memory layout.
+    \item Can call (and be called from) C without any special treatment.
+    \item Aims to be as fast as C or Fortran.
+  \end{itemize}
+\end{frame}
+
+
+
+\begin{frame}
+  \frametitle{What about Go?}
+
+  Rust is significantly different in philosophy.
+
+  \begin{itemize}
+    \item No shared mutable state.
+    \item Minimal GC impact, individual tasks can completely avoid GC.
+    \item No null pointers.
+    \item Type parametric code.
+    \item Greater type safety.
+  \end{itemize}
+\end{frame}
+
+
+
+\begin{frame}
+  \frametitle{Memory safety}
+
+  Memory safety has many meanings, but for example, outside of `unsafe' blocks, Rust programs \ldots
+
+  \begin{itemize}
+    \item \ldots\ cannot have null pointers. (use-before-initialize or use-after-move)
+    \item \ldots\ can only dereference previously allocated pointers that have not yet been freed.
+    \item \ldots\ cannot have dangling pointers.
+    \item \ldots\ cannot overflow the stack.
+    \item \ldots\ cannot have invalid format strings.
+    \item \ldots\ cannot free a block twice.
+  \end{itemize}
+\end{frame}
+
+
+
+\begin{frame}
+  \frametitle{Memory safety in C or C++}
+
+  In C, you cannot see if a function is memory safe just by looking at its implementation. \pause
+  You have to check if the implementation of each function it calls, in the context of the caller.
+\end{frame}
+
+
+
+\begin{frame}[fragile, shrink]
+  \begin{verbatim}
+class foo {
+public:
+    std::vector<int> indices;
+    int counter;
+
+    foo() : indices(), counter(0) {
+        indices.push_back(1);
+        indices.push_back(2);
+        indices.push_back(3);
+    }
+
+    void increment_counter();
+
+    int &get_first_index() {
+        assert(indices.size() > 0);
+        return indices[0];
+    }
+
+    void munge() {
+        int &first = get_first_index();
+        increment_counter();
+        std::cout << first << std::endl;
+        first = 20;
+    }
+};
+  \end{verbatim}
+\end{frame}
+
+%------------------------------------------------
+\section{Let's Learn Some Rust}
+%------------------------------------------------
+
+\begin{frame}[fragile]
+  \frametitle{Immutability}
+
+  Variables are immutable by default,
+
+  \begin{verbatim}
+let a = 1.0f64;
+a += 1.0; // Type error
+
+let mut b = 2.0f64;
+b *= 2.0; // OK
+  \end{verbatim}
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+  \frametitle{Functions}
+
+  Semicolon at the end of a line turns an expression into a statement,
+
+  \begin{verbatim}
+fn f(x:f64) -> f64 {
+  return x.exp() + 5.0;
+}
+
+fn f(x:f64) -> f64 {
+  x.exp() + 5.0
+}
+  \end{verbatim}
+  
+  Ps. Some styles use function return, some always use the semicolon-less style.
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+  \frametitle{Structures}
+
+  Structs are binary compatible with C, so you can pass and receive them from foreign functions.
+
+  \begin{verbatim}
+struct Complex {
+  r:f64, i:f64
+}
+  \end{verbatim}
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+  \frametitle{Enumerations}
+
+  Enums are not binary compatible though, but have gained some new super powers!
+
+  \begin{verbatim}
+enum Plans {
+  Trial, Silver, Gold
+}
+  \end{verbatim}
+  
+  and they can have fields,
+  
+  \begin{verbatim}
+enum Option<T> {
+  None, Some(T)
+}
+  \end{verbatim}
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+  \frametitle{Pattern Matching}
+
+  Enums are not binary compatible though, but have gained some new super powers!
+
+  \begin{verbatim}
+fn cost_per_month(p:Plan) -> f64 {
+  match p {
+    Trial => 0.0,
+    Silver => 5000.0,
+    Gold   => 50000.0
+  }
+}
+  \end{verbatim}
+
+  If we forget an entry, that's a exhaustiveness error. This means we can just add a Bronze plan and let the compiler spit out all the places we need to modify.
+
+  Values on the LHS are type-checked, unlike in C switches.
+\end{frame}
+
+
+
+\begin{frame}[fragile, shrink]
+  \frametitle{Destructuring}
+
+  \begin{verbatim}
+let option = Some(~"something")
+match option {
+  None => ~"It's nothing",
+  Some(something) => fmt!("It’s %s", something)
+}
+  \end{verbatim}
+
+  This is the only way to access `something'.
+
+  \begin{verbatim}
+let x = [1, 2, 3];
+match x {
+  [1, ..tail] => tail,
+  [_, ..tail] => []
+}
+  \end{verbatim}
+
+  And it works for vectors and structs as well.
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+  \frametitle{Loops}
+
+  \begin{verbatim}
+for i in uint::range(0, 10) {
+  printfln!("Hello, %?" , i);
+};
+  \end{verbatim}
+
+  \begin{verbatim}
+uint::range(0, 10, |i| {
+  printfln!("Hello, %?" , i);
+});
+  \end{verbatim}
+
+  \begin{verbatim}
+let mut i = 0;
+while i < 10 {
+  printfln!("Hello, %?" , i); j += 1;
+}
+  \end{verbatim}
+\end{frame}
+
+
+
+%------------------------------------------------
+\section{Four kinds of pointers?}
+%------------------------------------------------
+
+\begin{frame}
+  \frametitle{So what is this thing called memory safety?}
+
+  \begin{itemize}
+  \item The easiest way to be `safe' is to use a GC for all allocations, and not allow pointers.
+  \item But Rust's performance requirements doesn't really allow for an all-GC solution, yet we want automatic memory management.
+  \end{itemize}
+\end{frame}
+
+
+
+\begin{frame}
+  \frametitle{The two interesting kinds, \textasciitilde and \&}
+
+  \begin{itemize}
+  \item A \textasciitilde pointer is a unique pointer, there can only be one.
+  \item A \& pointer is a borrowed pointer, they get created when you lend your unique pointer to someone. You cannot use your unique pointer again until you get it back. Kind of like a book.
+  \end{itemize}
+\end{frame}
+
+
+
+\begin{frame}
+  \frametitle{Borrowed pointers}
+
+  \begin{itemize}
+  \item It’s safe to borrow a pointer to data in a stack frame that will outlive your own.
+  \item It’s also efficient: the compiler proves statically that lifetimes nest properly, so borrowed pointers need no automatic memory management. (Unlike ARC)
+  \item Rust accomplishes both of these goals without making the programmer responsible for reasoning about pointer lifetimes. The compiler checks your assumptions.
+  \end{itemize}
+\end{frame}
+
+
+
+%------------------------------------------------
+\section{Let's Write Some Rust}
+%------------------------------------------------
+
+\begin{frame}
+  \frametitle{Project Euler: 1}
+
+  If we list all the natural numbers below 10 that are multiples of 3 or 5, we get 3, 5, 6 and 9. The sum of these multiples is 23.
+
+  Find the sum of all the multiples of 3 or 5 below 1000.
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+  \frametitle{A function that finds multiples of 3 and 5}
+
+  \begin{verbatim}
+fn f(x:int) -> bool {
+  return match x {
+    i if i % 5 == 0 => true,
+    i if i % 3 == 0 => true,
+    _ => false
+  };
+}
+  \end{verbatim}
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+  \frametitle{And compose that}
+
+  \begin{verbatim}
+std::iter::range(0, 1001).filter(f).fold(0, |sum, i| {
+  sum + i
+})
+  \end{verbatim}
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+  \frametitle{Fibonacci}
+
+  \begin{verbatim}
+fn fib(n:int) -> int {
+  if n < 2 {
+    return 1;
+  } else {
+    return fib(n - 1) + fib(n - 2);
+  }
+}
+  \end{verbatim}
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+  \frametitle{Or if we want to win benchmarks}
+  
+  \begin{verbatim}
+use std::f64;
+use std::libc;
+
+fn factorial(n:f64) {
+  let mut sign:libc::c_int = 0;
+
+  return f64::exp(f64::lgamma(n - 1, &mut sign));
+}
+  \end{verbatim}
+\end{frame}
+
+
+
+%------------------------------------------------
+\section{Real simple programs}
+%------------------------------------------------
+
+\begin{frame}[fragile, shrink]
+  \begin{verbatim}
+#[no_mangle]
+pub extern "C" fn main() {
+  unsafe {
+    init();
+    delay(1);
+    pinMode(LED, OUTPUT);
+
+    loop {
+      digitalWrite(LED, HIGH);
+      delay(1000);
+      digitalWrite(LED, LOW);
+      delay(100);
+    }
+  }
+}
+  \end{verbatim}
+\end{frame}
+
+
+
+\begin{frame}[fragile, shrink]
+  \begin{verbatim}
+
+    extern mod extra;
+
+    use std::os;
+    use std::str;
+    use std::libc;
+    use extra::getopts::groups;
+
+    struct c_passwd {
+        pw_name: *libc::c_char,
+        // Maybe I should put here others struct members, but...Well, maybe.
+    }
+
+    extern {
+        pub fn geteuid() -> libc::c_int;
+        pub fn getpwuid(uid: libc::c_int) -> *c_passwd;
+    }
+
+    unsafe fn getusername() -> ~str {
+        let passwd: *c_passwd = getpwuid(geteuid());
+
+        let pw_name: *libc::c_char = (*passwd).pw_name;
+        let name = str::raw::from_c_str(pw_name);
+
+        name
+    }
+
+    fn main() {
+        let args = os::args();
+        let program = args[0].as_slice();
+        let opts = ~[
+            groups::optflag("h", "help", "display this help and exit"),
+            groups::optflag("V", "version", "output version information and exit"),
+        ];
+        let matches = match groups::getopts(args.tail(), opts) {
+            Ok(m) => m,
+            Err(f) => fail!(f.to_err_msg()),
+        };
+        if matches.opt_present("help") {
+            println("whoami 1.0.0");
+            println("");
+            println("Usage:");
+            println!(" {:s}", program);
+            println("");
+            print(groups::usage("print effective userid", opts));
+            return;
+        }
+        if matches.opt_present("version") {
+            println("whoami 1.0.0");
+            return;
+        }
+
+        exec();
+    }
+
+    pub fn exec() {
+        unsafe {
+            let username = getusername();
+            println!("{:s}", username);
+        }
+    }
+  \end{verbatim}
+\end{frame}
+
+
+
+\begin{frame}[fragile, shrink]
+  \begin{verbatim}
+extern mod extra;
+
+use std::os;
+use std::io::stderr;
+use extra::getopts::groups;
+
+fn main() {
+    let args = os::args();
+    let program = args[0].clone();
+    let opts = ~[
+        groups::optflag("h", "help", "display this help and exit"),
+        groups::optflag("V", "version", "output version information and exit"),
+    ];
+    let matches = match groups::getopts(args.tail(), opts) {
+        Ok(m) => m,
+        Err(f) => {
+            writeln!(&mut stderr() as &mut Writer,
+                   "Invalid options\n{}", f.to_err_msg());
+            os::set_exit_status(1);
+            return
+        }
+    };
+    if matches.opt_present("help") {
+        println("yes 1.0.0");
+        println("");
+        println("Usage:");
+        println!(" {0:s} [STRING]... [OPTION]...", program);
+        println("");
+        print(groups::usage("Repeatedly output a line with all specified STRING(s), or 'y'.", opts));
+        return;
+    }
+    if matches.opt_present("version") {
+        println("yes 1.0.0");
+        return;
+    }
+    let mut string = ~"y";
+    if !matches.free.is_empty() {
+        string = matches.free.connect(" ");
+    }
+
+    exec(string);
+}
+
+pub fn exec(string: ~str) {
+    loop {
+        println(string);
+    }
+}
+  \end{verbatim}
+\end{frame}
+
+\end{document}
